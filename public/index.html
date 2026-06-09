@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InkSight 控制面板</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --bg-card: #1e1e1e;
+            --fg: #e0e0e0;
+            --accent: #4caf50;
+            --border: #333;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+        h1 {
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 0.5rem;
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #aaa;
+        }
+        input[type="text"], input[type="password"], select {
+            width: 100%;
+            padding: 0.5rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--fg);
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .preview-box {
+            width: 100%;
+            height: 200px;
+            border: 2px dashed var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            margin-top: 1rem;
+            border-radius: 8px;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center;
+        }
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-actions">
+            <h1>⚙️ InkSight Server 控制台</h1>
+            <button onclick="saveConfig()">💾 保存配置</button>
+        </div>
+
+        <div class="card">
+            <h2>📝 基础设置</h2>
+            <div class="form-group">
+                <label>底部文案 (Footer Text)</label>
+                <input type="text" id="footerText" placeholder="例如：我的宝宝">
+            </div>
+            <div class="form-group">
+                <label>所属人 (Owner Name)</label>
+                <input type="text" id="ownerName" placeholder="例如：Mer3y">
+            </div>
+            <div class="form-group">
+                <label>硬件 Token (InkSight Token)</label>
+                <input type="password" id="inkToken" placeholder="用于主动向硬件推送的 Token">
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🌤️ 天气与监控</h2>
+            <div class="form-group">
+                <label>天气服务开关</label>
+                <select id="weatherEnabled">
+                    <option value="true">开启</option>
+                    <option value="false">关闭</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>城市代码 (Location ID)</label>
+                <input type="text" id="weatherLocation" placeholder="101010100">
+            </div>
+            <div class="form-group">
+                <label>和风天气 API Key</label>
+                <input type="password" id="weatherApiKey">
+            </div>
+            <div class="form-group">
+                <label>本机探针监控 (系统 CPU/内存)</label>
+                <select id="sysMonitor">
+                    <option value="true">开启</option>
+                    <option value="false">关闭</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🖼️ 图片库管理 & 主动推送</h2>
+            <p style="color: #aaa; font-size: 0.9rem;">服务器会自动处理 data/images 目录下的图片。此处可以上传新图片，或立刻推送到屏幕。</p>
+            <div class="form-group">
+                <input type="file" id="imageUpload" accept="image/*">
+                <button onclick="uploadImage()" style="margin-top: 0.5rem; background: #2196F3; color: white;">📤 上传到图库</button>
+            </div>
+            
+            <div style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                <button onclick="pushNow()" style="background: #e91e63; color: white;">🚀 立即向墨水屏推送最新状态</button>
+            </div>
+            
+            <div class="preview-box" id="previewBox">
+                等待预览...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时获取当前配置
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/admin/config');
+                const data = await res.json();
+                
+                document.getElementById('footerText').value = data.ui.footer_text || '';
+                document.getElementById('ownerName').value = data.ui.owner_name || '';
+                document.getElementById('weatherEnabled').value = data.weather.enabled ? "true" : "false";
+                document.getElementById('weatherLocation').value = data.weather.location || '';
+                document.getElementById('weatherApiKey').value = data.weather.api_key || '';
+                document.getElementById('sysMonitor').value = data.system_monitor.enabled ? "true" : "false";
+                document.getElementById('inkToken').value = data.hardware?.token || '';
+                
+            } catch (err) {
+                console.error("加载配置失败", err);
+            }
+        }
+
+        async function saveConfig() {
+            const configData = {
+                ui: {
+                    footer_text: document.getElementById('footerText').value,
+                    owner_name: document.getElementById('ownerName').value
+                },
+                weather: {
+                    enabled: document.getElementById('weatherEnabled').value === "true",
+                    location: document.getElementById('weatherLocation').value,
+                    api_key: document.getElementById('weatherApiKey').value
+                },
+                system_monitor: {
+                    enabled: document.getElementById('sysMonitor').value === "true"
+                },
+                hardware: {
+                    token: document.getElementById('inkToken').value
+                }
+            };
+
+            try {
+                const res = await fetch('/api/admin/config', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(configData)
+                });
+                if(res.ok) alert("配置保存成功！");
+            } catch (err) {
+                alert("保存失败: " + err.message);
+            }
+        }
+
+        async function uploadImage() {
+            const fileInput = document.getElementById('imageUpload');
+            if(!fileInput.files.length) return alert("请先选择图片");
+            
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            try {
+                const res = await fetch('/api/admin/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                if(res.ok) {
+                    alert("图片上传成功并已加入图库！");
+                    // 刷新预览
+                    const preview = document.getElementById('previewBox');
+                    preview.style.backgroundImage = `url('/api/inksight/image?t=${Date.now()}')`;
+                    preview.innerHTML = '';
+                    fileInput.value = '';
+                }
+            } catch (err) {
+                alert("上传失败: " + err.message);
+            }
+        }
+        
+        async function pushNow() {
+            try {
+                const res = await fetch('/api/admin/push', { method: 'POST' });
+                const result = await res.json();
+                if(res.ok) alert("推送指令已发出！");
+                else alert("推送失败: " + (result.detail || "未知错误"));
+            } catch (err) {
+                alert("请求失败: " + err.message);
+            }
+        }
+
+        window.onload = () => {
+            loadConfig();
+            const preview = document.getElementById('previewBox');
+            preview.style.backgroundImage = `url('/api/inksight/image')`;
+            preview.innerHTML = '';
+        };
+    </script>
+</body>
+</html>
