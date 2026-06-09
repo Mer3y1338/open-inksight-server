@@ -1,0 +1,27 @@
+# InkSight Server 配置
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+ui:
+  # 底部显示的文字信息
+  footer_text: "我的宝宝"
+  owner_name: "User"
+  # 是否开启纸感黑白边框滤镜
+  enable_paper_filter: true
+
+data:
+  # 图片获取模式: 'local' (从本地 images 文件夹随机获取) 或 'api' (调用外部图库)
+  image_mode: "local"
+  local_images_dir: "data/images"
+
+weather:
+  enabled: true
+  provider: "qweather" # 和风天气
+  api_key: "YOUR_QWEATHER_API_KEY"
+  location: "101010100" # 城市代码
+
+system_monitor:
+  enabled: true
+  # 如果开启，会抓取运行此程序的电脑/树莓派的 CPU 和内存，推送到墨水屏上
