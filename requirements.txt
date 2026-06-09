@@ -3,4 +3,4 @@ uvicorn
 pyyaml
 psutil
 Pillow
-requests
+requestspython-multipart
