@@ -156,6 +156,6 @@ async def force_push_to_inksight():
 
 if __name__ == "__main__":
     host = config["server"].get("host", "0.0.0.0")
-    port = config["server"].get("port", 8088)
+    port = config["server"].get("port", 8082)
     print(f"🚀 Open-InkSight-Server 启动于 http://{host}:{port}")
     uvicorn.run(app, host=host, port=port)
